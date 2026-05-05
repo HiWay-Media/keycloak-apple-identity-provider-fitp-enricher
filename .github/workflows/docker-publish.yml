@@ -1,4 +1,4 @@
-name: Docker apple idendity provider & druid keycloak 
+name: Docker apple idendity provider & FIT enricher keycloak
 'on':
   push:
     tags:
