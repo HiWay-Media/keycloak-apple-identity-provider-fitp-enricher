@@ -11,12 +11,10 @@ Le immagini vengono pubblicate su GitHub Container Registry: `ghcr.io/hiway-medi
 
 | File | Scopo |
 | --- | --- |
-| [Dockerfile.latest](Dockerfile.latest) | Build sopra `quay.io/keycloak/keycloak:22.0.1` (immagine pinnata, pubblicata di default dalla pipeline). |
-| [Dockerfile.22.0.1](Dockerfile.22.0.1) | Build sopra `quay.io/keycloak/keycloak:latest` (segue l'upstream Keycloak). |
+| [Dockerfile.latest](Dockerfile.latest) | Build sopra `quay.io/keycloak/keycloak:latest` (segue l'upstream Keycloak). |
+| [Dockerfile.22.0.1](Dockerfile.22.0.1) | Build sopra `quay.io/keycloak/keycloak:22.0.1` (immagine pinnata). |
 | [.github/workflows/docker-publish.yml](.github/workflows/docker-publish.yml) | Pipeline che builda `Dockerfile.latest` e fa push su `ghcr.io` ad ogni tag. |
 | [.github/workflows/docker-publish.22.0.1.yml](.github/workflows/docker-publish.22.0.1.yml) | Pipeline gemella per `Dockerfile.22.0.1`. |
-
-> Nota: la nomenclatura dei Dockerfile è invertita rispetto al tag Keycloak che ciascuno usa — è una scelta della repo, non un errore.
 
 ## Versioni dei provider incluse
 
