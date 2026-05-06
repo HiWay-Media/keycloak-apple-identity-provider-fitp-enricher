@@ -19,7 +19,7 @@ Le immagini vengono pubblicate su GitHub Container Registry: `ghcr.io/hiway-medi
 ## Versioni dei provider incluse
 
 - `apple-identity-provider` **1.10.0**
-- `fitp-enricher` **1.0.0** (release tag `v0.1.0`)
+- `fitp-enricher` **0.2.0** (release tag `v0.2.0`)
 
 Per aggiornare un provider, modificare l'URL nei `Dockerfile.*` e taggare una nuova release.
 
@@ -33,8 +33,8 @@ Il workflow [docker-publish.yml](.github/workflows/docker-publish.yml) si attiva
 Per pubblicare una nuova versione:
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
 L'immagine viene pushata come `linux/amd64` su `ghcr.io/hiway-media/keycloak-apple-identity-provider-fitp-enricher`.
