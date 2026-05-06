@@ -1,4 +1,4 @@
-name: Docker apple idendity provider & FIT enricher keycloak 22.0.1
+name: Docker apple idendity provider & FITP enricher keycloak 22.0.1
 'on':
   push:
     tags:
