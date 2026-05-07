@@ -72,6 +72,41 @@ docker run --rm -p 8080:8080 \
   start-dev
 ```
 
+## Test locale con docker-compose
+
+Per provare i provider su una singola versione della matrice è incluso un [docker-compose.yml](docker-compose.yml) che avvia Keycloak (con Postgres) e configura `KC_HEALTH_ENABLED`, `KC_METRICS_ENABLED`, `token-exchange`.
+
+```bash
+cp .env.example .env                # personalizza KC_IMAGE_TAG, password, ecc.
+docker compose up -d
+docker compose logs -f keycloak     # attendi "Keycloak ... started"
+```
+
+Endpoint utili:
+
+- Admin console: <http://localhost:8080> (login con `KC_ADMIN_USER`/`KC_ADMIN_PASSWORD` da `.env`)
+- Health: <http://localhost:8080/health/ready> (quando `KC_HEALTH_ENABLED=true`)
+- Metrics: <http://localhost:8080/metrics>
+
+Per testare un'altra versione della matrice basta cambiare `KC_IMAGE_TAG` in `.env` (es. `22.0.5`, `23.0.7`, `24.0.5`, `25.0.6`, `26.6.1`, `stable`) e ricreare il container:
+
+```bash
+docker compose up -d --force-recreate keycloak
+```
+
+Per testare i provider:
+
+1. Apri la admin console → realm `master` (o creane uno) → **Identity Providers** → "Add provider" → deve comparire **Apple**. Configurare `Services ID`, `Team ID`, `Key ID`, `Private key` Apple per provarlo.
+2. **Authentication** → **Flows** → si dovrebbe poter aggiungere lo step **FITP Enricher** (richiede credenziali Microsoft Graph configurate come parametri dell'authenticator).
+
+> Verifica veloce che i jar siano caricati: `docker compose exec keycloak ls -la /opt/keycloak/providers`.
+
+Per fermare e pulire tutto (incluso il volume Postgres):
+
+```bash
+docker compose down -v
+```
+
 Le immagini sono buildate con:
 
 - `KC_FEATURES=token-exchange` — abilita il token exchange (necessario per scenari di federation).
