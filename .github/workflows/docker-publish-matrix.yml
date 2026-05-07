@@ -1,0 +1,72 @@
+name: Docker apple identity provider & FITP enricher keycloak (matrix)
+'on':
+  push:
+    tags:
+      - '*'
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - kc_version: "22.0.5"
+            apple_idp_version: "1.10.0"
+          - kc_version: "23.0.7"
+            apple_idp_version: "1.12.0"
+          - kc_version: "24.0.5"
+            apple_idp_version: "1.12.0"
+          - kc_version: "25.0.6"
+            apple_idp_version: "1.13.0"
+          - kc_version: "26.6.1"
+            apple_idp_version: "1.17.0"
+            is_stable_latest: true
+          - kc_version: "latest"
+            apple_idp_version: "1.17.0"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: '${{ github.actor }}'
+          password: '${{ secrets.GITHUB_TOKEN }}'
+      - name: Prepare image tags
+        id: prep
+        run: |
+          REG=ghcr.io
+          IMAGE=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')
+          DOCKER_IMAGE=${REG}/${IMAGE}
+          GIT_TAG=${GITHUB_REF#refs/tags/}
+          KC=${{ matrix.kc_version }}
+          TAGS="${DOCKER_IMAGE}:${KC},${DOCKER_IMAGE}:${KC}-${GIT_TAG}"
+          if [ "${{ matrix.is_stable_latest }}" = "true" ]; then
+            TAGS="${TAGS},${DOCKER_IMAGE}:stable"
+          fi
+          echo "tags=${TAGS}" >> $GITHUB_OUTPUT
+          echo "created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: '${{ steps.prep.outputs.tags }}'
+          build-args: |
+            KC_VERSION=${{ matrix.kc_version }}
+            APPLE_IDP_VERSION=${{ matrix.apple_idp_version }}
+            FITP_VERSION=0.2.0
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.created=${{ steps.prep.outputs.created }}
+            org.opencontainers.image.version=${{ matrix.kc_version }}
+            io.hiway.keycloak.version=${{ matrix.kc_version }}
+            io.hiway.apple-idp.version=${{ matrix.apple_idp_version }}

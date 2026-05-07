@@ -11,40 +11,53 @@ Le immagini vengono pubblicate su GitHub Container Registry: `ghcr.io/hiway-medi
 
 | File | Scopo |
 | --- | --- |
-| [Dockerfile.latest](Dockerfile.latest) | Build sopra `quay.io/keycloak/keycloak:latest` (segue l'upstream Keycloak). |
-| [Dockerfile.22.0.1](Dockerfile.22.0.1) | Build sopra `quay.io/keycloak/keycloak:22.0.1` (immagine pinnata). |
-| [.github/workflows/docker-publish.yml](.github/workflows/docker-publish.yml) | Pipeline che builda `Dockerfile.latest` e fa push su `ghcr.io` ad ogni tag. |
-| [.github/workflows/docker-publish.22.0.1.yml](.github/workflows/docker-publish.22.0.1.yml) | Pipeline gemella per `Dockerfile.22.0.1`. |
+| [Dockerfile](Dockerfile) | Build parametrizzato (`ARG KC_VERSION`, `ARG APPLE_IDP_VERSION`, `ARG FITP_VERSION`) usato dal workflow matrix. |
+| [Dockerfile.latest](Dockerfile.latest) | Legacy: build sopra `quay.io/keycloak/keycloak:latest`. |
+| [Dockerfile.22.0.1](Dockerfile.22.0.1) | Legacy: build sopra `quay.io/keycloak/keycloak:22.0.1`. |
+| [.github/workflows/docker-publish-matrix.yml](.github/workflows/docker-publish-matrix.yml) | Pipeline che builda il `Dockerfile` parametrizzato per tutte le major Keycloak (22→26 + `latest`). |
+| [.github/workflows/docker-publish.yml](.github/workflows/docker-publish.yml) | Legacy: builda `Dockerfile.latest`. |
+| [.github/workflows/docker-publish.22.0.1.yml](.github/workflows/docker-publish.22.0.1.yml) | Legacy: builda `Dockerfile.22.0.1`. |
 
-## Versioni dei provider incluse
+## Matrice versioni (Dockerfile parametrizzato)
 
-| Provider | `Dockerfile.latest` | `Dockerfile.22.0.1` |
-| --- | --- | --- |
-| `apple-identity-provider` | **1.17.0** (Keycloak 26+) | **1.10.0** (Keycloak 22) |
-| `fitp-enricher` | **0.2.0** (release tag `v0.2.0`) | **0.2.0** (release tag `v0.2.0`) |
+Il workflow [docker-publish-matrix.yml](.github/workflows/docker-publish-matrix.yml) builda in parallelo:
 
-Per aggiornare un provider, modificare l'URL nei `Dockerfile.*` e taggare una nuova release.
+| Keycloak | apple-identity-provider | fitp-enricher | Tag immagine |
+| --- | --- | --- | --- |
+| `22.0.5` | `1.10.0` | `0.2.0` | `:22.0.5`, `:22.0.5-<git-tag>` |
+| `23.0.7` | `1.12.0` | `0.2.0` | `:23.0.7`, `:23.0.7-<git-tag>` |
+| `24.0.5` | `1.12.0` | `0.2.0` | `:24.0.5`, `:24.0.5-<git-tag>` |
+| `25.0.6` | `1.13.0` | `0.2.0` | `:25.0.6`, `:25.0.6-<git-tag>` |
+| `26.6.1` | `1.17.0` | `0.2.0` | `:26.6.1`, `:26.6.1-<git-tag>`, `:stable` |
+| `latest` | `1.17.0` | `0.2.0` | `:latest`, `:latest-<git-tag>` |
+
+Per aggiungere una nuova versione di Keycloak alla matrice, aggiungere un blocco `include` in [docker-publish-matrix.yml](.github/workflows/docker-publish-matrix.yml).
 
 ## Build/push automatici
 
-Il workflow [docker-publish.yml](.github/workflows/docker-publish.yml) si attiva su `push` di un tag git e calcola i tag Docker così:
-
-- Tag semver `vX.Y.Z` → vengono pubblicati `:vX.Y.Z`, `:vX.Y`, `:vX`, `:latest`.
-- Qualunque altro tag → solo `:<tag>`.
-
-Per pubblicare una nuova versione:
+Tutti i workflow si attivano su `push` di un tag git. Il flusso consigliato per le nuove release è:
 
 ```bash
-git tag v0.2.0
-git push origin v0.2.0
+git tag v0.3.0
+git push origin v0.3.0
 ```
 
-L'immagine viene pushata come `linux/amd64` su `ghcr.io/hiway-media/keycloak-apple-identity-provider-fitp-enricher`.
+Le immagini vengono pubblicate come `linux/amd64` su `ghcr.io/hiway-media/keycloak-apple-identity-provider-fitp-enricher`.
+
+> Nota: i workflow legacy [docker-publish.yml](.github/workflows/docker-publish.yml) e [docker-publish.22.0.1.yml](.github/workflows/docker-publish.22.0.1.yml) restano attivi e pubblicano i loro tag (`:vX.Y.Z`, `:vX.Y`, `:vX`, `:latest`) in parallelo alla matrice.
 
 ## Build locale
 
 ```bash
-docker build -f Dockerfile.latest -t keycloak-apple-fitp:dev .
+# parametrizzato
+docker build \
+  --build-arg KC_VERSION=26.6.1 \
+  --build-arg APPLE_IDP_VERSION=1.17.0 \
+  --build-arg FITP_VERSION=0.2.0 \
+  -t keycloak-apple-fitp:dev .
+
+# legacy
+docker build -f Dockerfile.latest -t keycloak-apple-fitp:legacy-latest .
 ```
 
 ## Run
