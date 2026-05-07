@@ -94,12 +94,32 @@ Per testare un'altra versione della matrice basta cambiare `KC_IMAGE_TAG` in `.e
 docker compose up -d --force-recreate keycloak
 ```
 
-Per testare i provider:
+### Verifica automatica dei provider
 
-1. Apri la admin console → realm `master` (o creane uno) → **Identity Providers** → "Add provider" → deve comparire **Apple**. Configurare `Services ID`, `Team ID`, `Key ID`, `Private key` Apple per provarlo.
+Il compose include un servizio one-shot `verify` (profilo `verify`) che chiede un token admin, interroga `/admin/serverinfo` e fallisce se `apple` o `fitp-enricher` non sono registrati come SPI:
+
+```bash
+docker compose --profile verify run --rm verify
+```
+
+In alternativa è disponibile uno script bash equivalente che gira dall'host (richiede `curl` + `docker compose`):
+
+```bash
+./scripts/verify-providers.sh
+```
+
+Output atteso (estratto):
+
+```
+[OK] identity provider 'apple'
+[OK] authenticator 'fitp-enricher'
+==> all providers verified
+```
+
+### Test manuale dei provider
+
+1. Admin console → realm `master` (o creane uno) → **Identity Providers** → "Add provider" → deve comparire **Apple**. Configurare `Services ID`, `Team ID`, `Key ID`, `Private key` Apple per provarlo.
 2. **Authentication** → **Flows** → si dovrebbe poter aggiungere lo step **FITP Enricher** (richiede credenziali Microsoft Graph configurate come parametri dell'authenticator).
-
-> Verifica veloce che i jar siano caricati: `docker compose exec keycloak ls -la /opt/keycloak/providers`.
 
 Per fermare e pulire tutto (incluso il volume Postgres):
 
