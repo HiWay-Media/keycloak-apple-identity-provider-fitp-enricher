@@ -18,8 +18,10 @@ Le immagini vengono pubblicate su GitHub Container Registry: `ghcr.io/hiway-medi
 
 ## Versioni dei provider incluse
 
-- `apple-identity-provider` **1.10.0**
-- `fitp-enricher` **0.2.0** (release tag `v0.2.0`)
+| Provider | `Dockerfile.latest` | `Dockerfile.22.0.1` |
+| --- | --- | --- |
+| `apple-identity-provider` | **1.17.0** (Keycloak 26+) | **1.10.0** (Keycloak 22) |
+| `fitp-enricher` | **0.2.0** (release tag `v0.2.0`) | **0.2.0** (release tag `v0.2.0`) |
 
 Per aggiornare un provider, modificare l'URL nei `Dockerfile.*` e taggare una nuova release.
 
