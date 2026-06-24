@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Keycloak · Apple IdP + FITP Enricher</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c2230; --border:#272e3a;
+    --txt:#e6edf3; --muted:#9aa7b4; --accent:#4d8bf0; --accent2:#7c5cff;
+    --ok:#2ea043; --warn:#d29922; --code:#0a0e14; --radius:14px;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:960px;margin:0 auto;padding:0 20px}
+  code{font-family:var(--mono);font-size:.88em;background:#21283250;border:1px solid var(--border);border-radius:6px;padding:.12em .42em}
+  pre{background:var(--code);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;overflow-x:auto;font-family:var(--mono);font-size:.84rem;line-height:1.55}
+  pre code{background:none;border:0;padding:0}
+  h2{font-size:1.5rem;margin:0 0 4px;letter-spacing:-.01em}
+  h3{font-size:1.05rem;margin:24px 0 8px}
+  section{padding:44px 0;border-top:1px solid var(--border)}
+  .eyebrow{font-size:.75rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
+  /* hero */
+  header{padding:72px 0 56px;background:
+     radial-gradient(800px 380px at 12% -10%,#4d8bf022,transparent),
+     radial-gradient(700px 360px at 100% 0%,#7c5cff1f,transparent)}
+  .badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px}
+  .badge{font-size:.72rem;font-weight:600;padding:5px 11px;border-radius:999px;border:1px solid var(--border);background:var(--panel);color:var(--muted)}
+  .badge.v{color:#fff;background:linear-gradient(120deg,var(--accent),var(--accent2));border:0}
+  h1{font-size:clamp(2rem,5vw,3rem);line-height:1.08;margin:0 0 14px;letter-spacing:-.02em}
+  h1 .grad{background:linear-gradient(120deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lead{font-size:1.12rem;color:var(--muted);max-width:680px;margin:0 0 26px}
+  .cta{display:flex;gap:12px;flex-wrap:wrap}
+  .btn{display:inline-block;padding:11px 20px;border-radius:10px;font-weight:600;font-size:.92rem}
+  .btn.primary{background:var(--accent);color:#fff}
+  .btn.primary:hover{background:#3b78dd;text-decoration:none}
+  .btn.ghost{border:1px solid var(--border);color:var(--txt);background:var(--panel)}
+  .btn.ghost:hover{border-color:var(--accent);text-decoration:none}
+  /* cards */
+  .grid{display:grid;gap:16px;grid-template-columns:1fr 1fr;margin-top:22px}
+  @media(max-width:640px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:22px}
+  .card h3{margin-top:0;display:flex;align-items:center;gap:10px}
+  .card p{margin:0;color:var(--muted);font-size:.94rem}
+  .ic{width:30px;height:30px;flex:0 0 30px;border-radius:8px;display:grid;place-items:center;background:var(--panel2);font-size:1rem}
+  /* table */
+  .tablewrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius)}
+  table{border-collapse:collapse;width:100%;font-size:.9rem;min-width:520px}
+  th,td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
+  th{background:var(--panel2);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+  tr:last-child td{border-bottom:0}
+  td code{font-size:.82em}
+  .pill{display:inline-block;font-size:.72rem;font-weight:600;padding:2px 8px;border-radius:999px;background:#2ea04322;color:#56d364;border:1px solid #2ea04340}
+  /* callout */
+  .note{border:1px solid var(--border);border-left:3px solid var(--warn);background:#d2992212;border-radius:10px;padding:14px 18px;margin:16px 0}
+  .note.info{border-left-color:var(--accent);background:#4d8bf012}
+  .note p{margin:0;color:var(--txt);font-size:.92rem}
+  .note strong{color:#fff}
+  footer{border-top:1px solid var(--border);padding:32px 0 56px;color:var(--muted);font-size:.86rem}
+  footer a{color:var(--muted)}
+  ol{padding-left:20px}ol li{margin:6px 0}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="badges">
+      <span class="badge v">FITP enricher 0.3.0</span>
+      <span class="badge">Apple IdP 1.10 → 1.17</span>
+      <span class="badge">Keycloak 22 → 26 + latest</span>
+      <span class="badge">linux/amd64</span>
+    </div>
+    <h1>Keycloak con <span class="grad">Apple IdP</span><br>e <span class="grad">FITP Enricher</span></h1>
+    <p class="lead">Immagine Docker custom di Keycloak preconfezionata con due provider HiWay: login "Sign in with Apple" e arricchimento token FITP. Buildata su tutte le major Keycloak e pubblicata su GitHub Container Registry.</p>
+    <div class="cta">
+      <a class="btn primary" href="https://github.com/HiWay-Media/keycloak-apple-identity-provider-fitp-enricher">Repository GitHub</a>
+      <a class="btn ghost" href="#quickstart">Quickstart</a>
+      <a class="btn ghost" href="#troubleshooting">Troubleshooting</a>
+    </div>
+  </div>
+</header>
+
+<section id="providers">
+  <div class="wrap">
+    <p class="eyebrow">Cosa contiene</p>
+    <h2>Due provider, un'unica immagine</h2>
+    <div class="grid">
+      <div class="card">
+        <h3><span class="ic"></span>Apple Identity Provider</h3>
+        <p>Social IdP "Sign in with Apple" di <a href="https://github.com/klausbetz/apple-identity-provider-keycloak">klausbetz/apple-identity-provider-keycloak</a>. Si configura in <strong>Identity providers → Apple</strong>.</p>
+      </div>
+      <div class="card">
+        <h3><span class="ic">🎫</span>FITP Enricher</h3>
+        <p>Arricchimento token HiWay/FITP di <a href="https://github.com/HiWay-Media/keycloak-fitp-enricher">HiWay-Media/keycloak-fitp-enricher</a>. È un <strong>Authenticator</strong> (id <code>fitp-enricher</code>): si aggiunge come step in <strong>Authentication → Flows</strong>.</p>
+      </div>
+    </div>
+    <div class="note info">
+      <p><strong>Registry:</strong> <code>ghcr.io/hiway-media/keycloak-apple-identity-provider-fitp-enricher</code></p>
+    </div>
+  </div>
+</section>
+
+<section id="matrix">
+  <div class="wrap">
+    <p class="eyebrow">Build matrix</p>
+    <h2>Matrice versioni</h2>
+    <p class="lead" style="font-size:1rem">Il workflow <code>docker-publish-matrix.yml</code> builda in parallelo il Dockerfile parametrizzato per ogni major Keycloak.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Keycloak</th><th>apple-identity-provider</th><th>fitp-enricher</th><th>Tag immagine</th></tr></thead>
+        <tbody>
+          <tr><td><code>22.0.5</code></td><td><code>1.10.0</code></td><td><code>0.3.0</code></td><td><code>:22.0.5</code></td></tr>
+          <tr><td><code>23.0.7</code></td><td><code>1.12.0</code></td><td><code>0.3.0</code></td><td><code>:23.0.7</code></td></tr>
+          <tr><td><code>24.0.5</code></td><td><code>1.12.0</code></td><td><code>0.3.0</code></td><td><code>:24.0.5</code></td></tr>
+          <tr><td><code>25.0.6</code></td><td><code>1.13.0</code></td><td><code>0.3.0</code></td><td><code>:25.0.6</code></td></tr>
+          <tr><td><code>26.6.1</code></td><td><code>1.17.0</code></td><td><code>0.3.0</code></td><td><code>:26.6.1</code> <span class="pill">stable</span></td></tr>
+          <tr><td><code>latest</code></td><td><code>1.17.0</code></td><td><code>0.3.0</code></td><td><code>:latest</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note">
+      <p><strong>Nota build-arg:</strong> il <code>Dockerfile</code> antepone già la <code>v</code> nell'URL della release, quindi <code>FITP_VERSION</code> va passato <strong>senza</strong> prefisso (es. <code>0.3.0</code>, non <code>v0.3.0</code>).</p>
+    </div>
+  </div>
+</section>
+
+<section id="quickstart">
+  <div class="wrap">
+    <p class="eyebrow">Quickstart</p>
+    <h2>Avvio rapido</h2>
+
+    <h3>Run (dev)</h3>
+<pre><code>docker run --rm -p 8080:8080 \
+  -e KEYCLOAK_ADMIN=admin \
+  -e KEYCLOAK_ADMIN_PASSWORD=admin \
+  ghcr.io/hiway-media/keycloak-apple-identity-provider-fitp-enricher:latest \
+  start-dev</code></pre>
+
+    <h3>Test locale con docker-compose</h3>
+<pre><code>cp .env.example .env          # personalizza KC_IMAGE_TAG, password, ecc.
+docker compose up -d
+docker compose logs -f keycloak
+
+# verifica che i provider siano registrati come SPI
+docker compose --profile verify run --rm verify</code></pre>
+
+    <h3>Build locale</h3>
+<pre><code>docker build \
+  --build-arg KC_VERSION=26.6.1 \
+  --build-arg APPLE_IDP_VERSION=1.17.0 \
+  --build-arg FITP_VERSION=0.3.0 \
+  -t keycloak-apple-fitp:dev .</code></pre>
+
+    <h3>Release (build & push automatico)</h3>
+<pre><code>git tag v0.3.0
+git push origin v0.3.0   # i workflow si attivano sul push del tag</code></pre>
+  </div>
+</section>
+
+<section id="troubleshooting">
+  <div class="wrap">
+    <p class="eyebrow">Troubleshooting</p>
+    <h2>Problemi comuni</h2>
+
+    <h3>Il FITP Enricher non compare in "Identity providers"</h3>
+    <p style="color:var(--muted)">È corretto: il FITP Enricher <strong>non è un Identity Provider</strong>, è un <strong>Authenticator</strong> (<code>fitp-enricher</code>). Si configura in <strong>Authentication → Flows</strong> come step di un flow, non nella pagina Identity providers. A boot lo trovi nei log:</p>
+<pre><code>KC-SERVICES0047: fitp-enricher (com.hiwaymedia.keycloak.FitpEnricherAuthenticatorFactory)
+is implementing the internal SPI authenticator</code></pre>
+
+    <h3>Lo step FITP "sparisce" dal flow dopo un redeploy</h3>
+    <p style="color:var(--muted)">Ogni step è una riga in <code>authentication_execution</code>, con la colonna <code>authenticator</code> = l'ID del provider. Se quell'ID non corrisponde a una factory caricata, la riga resta nel DB ma lo step <strong>non viene renderizzato</strong>.</p>
+    <div class="note">
+      <p>L'ID <code>fitp-enricher</code> è <strong>stabile</strong> in 0.2.0 → 0.2.1 → 0.3.0, quindi un bump di versione <strong>non</strong> causa il mismatch.</p>
+    </div>
+    <p style="color:var(--muted)">Diagnosi (sostituire il nome realm):</p>
+<pre><code>SELECT ae.authenticator, af.alias AS flow, ae.requirement, ae.flow_id
+FROM authentication_execution ae
+LEFT JOIN authentication_flow af ON af.id = ae.flow_id
+WHERE ae.realm_id = (SELECT id FROM realm WHERE name = 'supertennix')
+  AND ae.authenticator ILIKE '%fitp%';</code></pre>
+    <ol>
+      <li><strong><code>authenticator</code> ≠ <code>fitp-enricher</code></strong> (flow da una vecchia 0.1.x) → step orfano: ri-aggiungerlo dalla UI con l'ID attuale.</li>
+      <li><strong><code>flow</code> NULL / <code>flow_id</code> inesistente</strong> → flow ricreato da un realm-import al boot. Causa più frequente del "sparisce al redeploy".</li>
+      <li><strong>Tutto coerente</strong> → cache Infinispan stale: riavvio pulito.</li>
+    </ol>
+    <div class="note info">
+      <p><strong>Prevenzione:</strong> non mischiare realm-import che sovrascrive a ogni boot con modifiche manuali in UI. Includere lo step FITP nel realm JSON versionato, oppure disabilitare l'import-on-every-boot. Backup prima con <code>kc.sh export</code> o Admin REST <code>partial-export</code>.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>HiWay Media · <a href="https://github.com/HiWay-Media/keycloak-apple-identity-provider-fitp-enricher">keycloak-apple-identity-provider-fitp-enricher</a> · Licenza MIT</p>
+  </div>
+</footer>
+
+</body>
+</html>

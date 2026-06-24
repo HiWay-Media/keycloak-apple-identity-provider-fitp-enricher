@@ -7,7 +7,7 @@ ENV KC_METRICS_ENABLED=true
 # Apple Social Identity Provider - https://github.com/klausbetz/apple-identity-provider-keycloak
 ADD --chown=keycloak:keycloak https://github.com/klausbetz/apple-identity-provider-keycloak/releases/download/1.17.0/apple-identity-provider-1.17.0.jar /opt/keycloak/providers/apple-identity-provider-1.17.0.jar
 # FITP Enricher
-ADD --chown=keycloak:keycloak https://github.com/HiWay-Media/keycloak-fitp-enricher/releases/download/v0.2.1/fitp-enricher-0.2.1.jar /opt/keycloak/providers/fitp-enricher-0.2.1.jar
+ADD --chown=keycloak:keycloak https://github.com/HiWay-Media/keycloak-fitp-enricher/releases/download/v0.3.0/fitp-enricher-0.3.0.jar /opt/keycloak/providers/fitp-enricher-0.3.0.jar
 #
 # build optimized image
 RUN ls -l /opt/keycloak/providers/ && /opt/keycloak/bin/kc.sh build

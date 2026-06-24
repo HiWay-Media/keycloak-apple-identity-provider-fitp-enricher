@@ -24,12 +24,12 @@ Il workflow [docker-publish-matrix.yml](.github/workflows/docker-publish-matrix.
 
 | Keycloak | apple-identity-provider | fitp-enricher | Tag immagine |
 | --- | --- | --- | --- |
-| `22.0.5` | `1.10.0` | `0.2.0` | `:22.0.5`, `:22.0.5-<git-tag>` |
-| `23.0.7` | `1.12.0` | `0.2.0` | `:23.0.7`, `:23.0.7-<git-tag>` |
-| `24.0.5` | `1.12.0` | `0.2.0` | `:24.0.5`, `:24.0.5-<git-tag>` |
-| `25.0.6` | `1.13.0` | `0.2.0` | `:25.0.6`, `:25.0.6-<git-tag>` |
-| `26.6.1` | `1.17.0` | `0.2.0` | `:26.6.1`, `:26.6.1-<git-tag>`, `:stable` |
-| `latest` | `1.17.0` | `0.2.0` | `:latest`, `:latest-<git-tag>` |
+| `22.0.5` | `1.10.0` | `0.3.0` | `:22.0.5`, `:22.0.5-<git-tag>` |
+| `23.0.7` | `1.12.0` | `0.3.0` | `:23.0.7`, `:23.0.7-<git-tag>` |
+| `24.0.5` | `1.12.0` | `0.3.0` | `:24.0.5`, `:24.0.5-<git-tag>` |
+| `25.0.6` | `1.13.0` | `0.3.0` | `:25.0.6`, `:25.0.6-<git-tag>` |
+| `26.6.1` | `1.17.0` | `0.3.0` | `:26.6.1`, `:26.6.1-<git-tag>`, `:stable` |
+| `latest` | `1.17.0` | `0.3.0` | `:latest`, `:latest-<git-tag>` |
 
 Per aggiungere una nuova versione di Keycloak alla matrice, aggiungere un blocco `include` in [docker-publish-matrix.yml](.github/workflows/docker-publish-matrix.yml).
 
@@ -53,7 +53,7 @@ Le immagini vengono pubblicate come `linux/amd64` su `ghcr.io/hiway-media/keyclo
 docker build \
   --build-arg KC_VERSION=26.6.1 \
   --build-arg APPLE_IDP_VERSION=1.17.0 \
-  --build-arg FITP_VERSION=0.2.0 \
+  --build-arg FITP_VERSION=0.3.0 \
   -t keycloak-apple-fitp:dev .
 
 # legacy
@@ -133,6 +133,51 @@ Le immagini sono buildate con:
 - `KC_METRICS_ENABLED=true` — espone le metriche Prometheus su `/metrics`.
 
 Per la configurazione runtime (DB, hostname, TLS, ecc.) fare riferimento alla [documentazione Keycloak](https://www.keycloak.org/server/all-config).
+
+## Troubleshooting
+
+### Il FITP Enricher non compare in "Identity providers"
+
+È corretto: il FITP Enricher **non è un Identity Provider**, è un **Authenticator** (`com.hiwaymedia.keycloak.FitpEnricherAuthenticatorFactory`, provider id `fitp-enricher`). Si configura in **Authentication → Flows** come *step* dentro un flow (es. *Browser*, *First broker login*, *Post broker login*), non nella pagina *Identity providers*. A boot lo trovi nei log:
+
+```
+KC-SERVICES0047: fitp-enricher (com.hiwaymedia.keycloak.FitpEnricherAuthenticatorFactory)
+is implementing the internal SPI authenticator
+```
+
+### Lo step FITP "sparisce" dal flow dopo un redeploy
+
+Sintomo: lo step era configurato, dopo un riavvio/upgrade non si vede più nella console admin, ma le righe sembrano ancora nel DB.
+
+Come funziona: ogni step di un flow è una riga in `authentication_execution`, la cui colonna `authenticator` contiene l'**ID del provider**. La console risolve quell'ID verso una factory registrata; se l'ID **non** corrisponde a una factory caricata, la riga resta nel DB ma lo step **non viene renderizzato**.
+
+> Nota: l'ID `fitp-enricher` è **stabile** in 0.2.0 → 0.2.1 → 0.3.0, quindi un bump di versione **non** causa il mismatch.
+
+Diagnosi (sostituire il nome realm):
+
+```sql
+SELECT ae.authenticator, af.alias AS flow, ae.requirement, ae.flow_id
+FROM authentication_execution ae
+LEFT JOIN authentication_flow af ON af.id = ae.flow_id
+WHERE ae.realm_id = (SELECT id FROM realm WHERE name = 'supertennix')
+  AND ae.authenticator ILIKE '%fitp%';
+```
+
+Cause e fix:
+
+1. **`authenticator` ≠ `fitp-enricher`** (flow configurato con una vecchia 0.1.x dall'ID diverso) → step orfano: ri-aggiungerlo con l'ID attuale dalla UI.
+2. **`flow` NULL / `flow_id` inesistente** → il flow padre è stato **ricreato da un realm-import al boot**, orfanando l'execution. Questa è la causa più frequente del "sparisce al redeploy".
+3. **Tutto coerente** (`fitp-enricher` + flow valido) → cache Infinispan stale: riavvio pulito.
+
+Prevenzione: **non** mischiare realm-import che sovrascrive a ogni boot con modifiche manuali in UI. Includere lo step FITP nel realm JSON versionato, oppure disabilitare l'import-on-every-boot così le modifiche persistono. Fare sempre un export di backup prima (`kc.sh export` o Admin REST `partial-export`).
+
+## Documentazione (GitHub Pages)
+
+Il sito di documentazione è pubblicato via GitHub Pages dalla cartella [docs/](docs/) tramite il workflow [.github/workflows/pages.yml](.github/workflows/pages.yml):
+
+<https://hiway-media.github.io/keycloak-apple-identity-provider-fitp-enricher/>
+
+> Setup una tantum: in **Settings → Pages → Build and deployment → Source** selezionare **GitHub Actions**.
 
 ## Licenza
 
